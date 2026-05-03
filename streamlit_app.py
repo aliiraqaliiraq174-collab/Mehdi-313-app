@@ -1,29 +1,44 @@
 import streamlit as st
 import PyPDF2
-from pdf2image import convert_from_bytes
-import io
+import base64
 
 st.set_page_config(page_title="مكتبة مهدي", layout="wide")
 
-st.title("📚 مكتبة مهدي - عرض مضمون 100%")
+st.markdown("""
+    <style>
+    .main { text-align: right; direction: rtl; }
+    .stButton>button { width: 100%; border-radius: 20px; background-color: #4CAF50; color: white; height: 3em; font-size: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
 
-file = st.file_uploader("ارفع الكتاب (PDF)", type="pdf")
+st.title("📚 مساعد مهدي الدراسي (النسخة المستقرة)")
+
+file = st.file_uploader("ارفع كتابك أو ملزمتك (PDF)", type="pdf")
 
 if file:
-    # الجزء الأول: البحث (شغال تمام)
-    pdf_reader = PyPDF2.PdfReader(file)
-    st.sidebar.success(f"عدد الصفحات: {len(pdf_reader.pages)}")
-    query = st.sidebar.text_input("🔍 ابحث عن كلمة:")
-    if query:
-        results = [i+1 for i, p in enumerate(pdf_reader.pages) if query.lower() in p.extract_text().lower()]
-        st.sidebar.write(f"وُجدت في: {results}" if results else "غير موجودة")
-
-    # الجزء الثاني: الحل لمشكلة الشاشة البيضاء (العرض كصور)
-    st.subheader("📖 تصفح الصفحات")
-    images = convert_from_bytes(file.getvalue(), first_page=1, last_page=20) # عرض أول 20 صفحة للسرعة
+    # تحويل الملف لبيانات قابلة للقراءة
+    bytes_data = file.getvalue()
+    base64_pdf = base64.b64encode(bytes_data).decode('utf-8')
     
-    for i, image in enumerate(images):
-        st.image(image, caption=f"صفحة {i+1}", use_container_width=True)
-        st.write("---")
+    # محرك البحث الجانبي
+    pdf_reader = PyPDF2.PdfReader(file)
+    st.sidebar.header(f"عدد الصفحات: {len(pdf_reader.pages)}")
+    query = st.sidebar.text_input("🔍 ابحث عن تعريف أو سؤال:")
+    
+    if query:
+        matches = [i+1 for i, p in enumerate(pdf_reader.pages) if query.lower() in p.extract_text().lower()]
+        st.sidebar.write(f"موجود في صفحات: {matches}" if matches else "غير موجود")
+
+    st.write("---")
+    
+    # هذا الزر هو الحل النهائي للشاشة البيضاء
+    st.success("تم تحميل الكتاب بنجاح!")
+    
+    # رابط يفتح الكتاب في المتصفح نفسه بطريقة "المعاينة"
+    pdf_url = f"data:application/pdf;base64,{base64_pdf}"
+    st.markdown(f'<a href="{pdf_url}" target="_blank" style="text-decoration: none;"><button style="width: 100%; background-color: #1E3A8A; color: white; padding: 15px; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;">📖 اضغط هنا لفتح الكتاب للقراءة والنسخ</button></a>', unsafe_allow_html=True)
+    
+    st.warning("ملاحظة: عند الضغط على الزر، سيفتح الكتاب في نافذة جديدة، وهناك يمكنك تصفحه ونسخ ما تريد بكل سهولة.")
+
 else:
-    st.info("ارفع الملزمة هنا لتظهر لك فوراً بدون شاشة بيضاء.")
+    st.info("أهلاً بك يا بطل.. ارفع ملزمة السادس الآن وابدأ الدراسة.")
