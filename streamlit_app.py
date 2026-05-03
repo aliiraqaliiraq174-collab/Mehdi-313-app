@@ -1,39 +1,59 @@
 import streamlit as st
 import PyPDF2
-from pdf2image import convert_from_bytes
-import io
 import base64
 
-st.set_page_config(page_title="مكتبة مهدي الاحترافية", layout="wide")
+# إعداد الصفحة لتكون احترافية وعريضة
+st.set_page_config(page_title="المكتبة الذكية", layout="wide")
 
+# تصميم الواجهة الاحترافي
 st.markdown("""
     <style>
-    .main { text-align: right; direction: rtl; }
+    .main { text-align: right; direction: rtl; font-family: 'Arial'; }
     [data-testid="stSidebar"] { text-align: right; direction: rtl; }
-    .page-container { border: 1px solid #ddd; margin-bottom: 20px; padding: 10px; background: white; }
+    .stTextInput > div > div > input { text-align: right; }
+    .pdf-frame { border: 2px solid #1E3A8A; border-radius: 10px; width: 100%; height: 900px; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("📚 المكتبة الرقمية المتكاملة")
+st.title("📚 مكتبة مهدي الرقمية المتكاملة")
+st.write("الإصدار النهائي المستقر للقراءة والبحث والنسخ")
 
+# القائمة الجانبية للأدوات
 with st.sidebar:
     st.header("⚙️ لوحة التحكم")
-    uploaded_file = st.file_uploader("ارفع الكتاب (PDF)", type="pdf")
+    file = st.file_uploader("ارفع كتابك (PDF)", type="pdf")
     
-    if uploaded_file:
-        # للقراءة والبحث
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        num_pages = len(pdf_reader.pages)
-        st.success(f"تم تحميل {num_pages} صفحة")
+    if file:
+        pdf_reader = PyPDF2.PdfReader(file)
+        pages_count = len(pdf_reader.pages)
+        st.success(f"تم تحميل الكتاب: {pages_count} صفحة")
         
-        query = st.text_input("🔍 ابحث عن نص داخل الكتاب:")
+        st.write("---")
+        st.subheader("🔍 البحث داخل النص")
+        query = st.text_input("اكتب الكلمة هنا:")
+        
         if query:
             matches = [i+1 for i, p in enumerate(pdf_reader.pages) if query.lower() in p.extract_text().lower()]
-            if matches: st.info(f"موجود في صفحات: {matches}")
-            else: st.warning("لم يتم العثور على الكلمة")
+            if matches:
+                st.info(f"موجود في صفحات: {matches}")
+            else:
+                st.warning("الكلمة غير موجودة")
 
-if uploaded_file:
-    st.subheader("📖 تصفح الكتاب")
+# المنطقة الرئيسية لعرض الكتاب
+if file:
+    # تحويل الملف للعرض بطريقة تمنع الصفحة البيضاء وتدعم النسخ
+    base64_pdf = base64.b64encode(file.getvalue()).decode('utf-8')
+    
+    # استخدام تقنية الـ Iframe المدعومة في التطبيقات
+    pdf_display = f'''
+        <iframe class="pdf-frame" 
+                src="data:application/pdf;base64,{base64_pdf}#toolbar=1" 
+                type="application/pdf">
+        </iframe>
+    '''
+    st.markdown(pdf_display, unsafe_allow_html=True)
+else:
+    st.info("قم برفع ملف PDF من القائمة الجانبية لفتحه في القارئ الذكي.")
     
     # تحويل صفحات الـ PDF إلى صور لعرضها بشكل مضمون
     # ملاحظة: سنعرض أول 10 صفحات كمثال لتجنب الثقل، ويمكنك التغيير
