@@ -1,56 +1,29 @@
 import streamlit as st
 import PyPDF2
-import base64
+from pdf2image import convert_from_bytes
+import io
 
-# إعداد الصفحة لتكون احترافية وعريضة
-st.set_page_config(page_title="المكتبة الذكية", layout="wide")
+st.set_page_config(page_title="مكتبة مهدي", layout="wide")
 
-# تصميم الواجهة الاحترافي
-st.markdown("""
-    <style>
-    .main { text-align: right; direction: rtl; font-family: 'Arial'; }
-    [data-testid="stSidebar"] { text-align: right; direction: rtl; }
-    .stTextInput > div > div > input { text-align: right; }
-    .pdf-frame { border: 2px solid #1E3A8A; border-radius: 10px; width: 100%; height: 900px; }
-    </style>
-    """, unsafe_allow_html=True)
+st.title("📚 مكتبة مهدي - عرض مضمون 100%")
 
-st.title("📚 مكتبة مهدي الرقمية المتكاملة")
-st.write("الإصدار النهائي المستقر للقراءة والبحث والنسخ")
+file = st.file_uploader("ارفع الكتاب (PDF)", type="pdf")
 
-# القائمة الجانبية للأدوات
-with st.sidebar:
-    st.header("⚙️ لوحة التحكم")
-    file = st.file_uploader("ارفع كتابك (PDF)", type="pdf")
-    
-    if file:
-        pdf_reader = PyPDF2.PdfReader(file)
-        pages_count = len(pdf_reader.pages)
-        st.success(f"تم تحميل الكتاب: {pages_count} صفحة")
-        
-        st.write("---")
-        st.subheader("🔍 البحث داخل النص")
-        query = st.text_input("اكتب الكلمة هنا:")
-        
-        if query:
-            matches = [i+1 for i, p in enumerate(pdf_reader.pages) if query.lower() in p.extract_text().lower()]
-            if matches:
-                st.info(f"موجود في صفحات: {matches}")
-            else:
-                st.warning("الكلمة غير موجودة")
-
-# المنطقة الرئيسية لعرض الكتاب
 if file:
-    # تحويل الملف للعرض بطريقة تمنع الصفحة البيضاء وتدعم النسخ
-    base64_pdf = base64.b64encode(file.getvalue()).decode('utf-8')
+    # الجزء الأول: البحث (شغال تمام)
+    pdf_reader = PyPDF2.PdfReader(file)
+    st.sidebar.success(f"عدد الصفحات: {len(pdf_reader.pages)}")
+    query = st.sidebar.text_input("🔍 ابحث عن كلمة:")
+    if query:
+        results = [i+1 for i, p in enumerate(pdf_reader.pages) if query.lower() in p.extract_text().lower()]
+        st.sidebar.write(f"وُجدت في: {results}" if results else "غير موجودة")
+
+    # الجزء الثاني: الحل لمشكلة الشاشة البيضاء (العرض كصور)
+    st.subheader("📖 تصفح الصفحات")
+    images = convert_from_bytes(file.getvalue(), first_page=1, last_page=20) # عرض أول 20 صفحة للسرعة
     
-    # استخدام تقنية الـ Iframe المدعومة في التطبيقات
-    pdf_display = f'''
-        <iframe class="pdf-frame" 
-                src="data:application/pdf;base64,{base64_pdf}#toolbar=1" 
-                type="application/pdf">
-        </iframe>
-    '''
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    for i, image in enumerate(images):
+        st.image(image, caption=f"صفحة {i+1}", use_container_width=True)
+        st.write("---")
 else:
-    st.info("قم برفع ملف PDF من القائمة الجانبية لفتحه في القارئ الذكي.")
+    st.info("ارفع الملزمة هنا لتظهر لك فوراً بدون شاشة بيضاء.")
